@@ -1,0 +1,35 @@
+kind: List
+apiVersion: v1beta1
+items:
+- apiVersion: apps/v1beta1
+  kind: Deployment
+  metadata:
+    name: documentation
+  spec:
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app: documentation
+        name: documentation
+      spec:
+        containers:
+        - image: blackducksoftware/hub-documentation:4.4.2
+          livenessProbe:
+            exec:
+              command:
+                - /usr/local/bin/docker-healthcheck.sh
+                - http://127.0.0.1:8080/hubdoc/health-checks/liveness
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+          imagePullPolicy: Always
+          name: documentation
+          resources:
+            requests:
+              memory: "1024M"
+          ports:
+          - containerPort: 8080
+          env:
+          - name: HUB_VERSION
+            value: 4.4.2

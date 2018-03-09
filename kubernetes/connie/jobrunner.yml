@@ -1,0 +1,40 @@
+kind: List
+apiVersion: v1beta1
+items:
+- apiVersion: apps/v1beta1
+  kind: Deployment
+  metadata:
+    name: jobrunner
+  spec:
+    replicas: 1
+    template:
+      metadata:
+        name: jobrunner
+        labels:
+          app: jobrunner
+          tier: jobrunner
+      spec:
+        containers:
+        - name: jobrunner
+          image: blackducksoftware/hub-jobrunner:4.4.2
+          livenessProbe:
+            exec:
+              command:
+                - /usr/local/bin/docker-healthcheck.sh
+            initialDelaySeconds: 60
+            periodSeconds: 60
+          imagePullPolicy: Always
+          resources:
+            requests:
+              cpu: 1
+              memory: 4608M
+            limits:
+              cpu: 1
+              memory: 4608M
+          name: jobrunner
+          envFrom:
+          - configMapRef:
+              name: hub-config
+          env:
+          - name: HUB_VERSION
+            value: 4.4.2

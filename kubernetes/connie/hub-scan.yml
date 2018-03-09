@@ -1,0 +1,50 @@
+kind: List
+apiVersion: v1beta1
+items:
+- apiVersion: apps/v1beta1
+  kind: Deployment
+  metadata:
+    name: hub-scan
+  spec:
+    replicas: 1
+    template:
+      metadata:
+        labels:
+          app: hub-scan
+        name: hub-scan
+      spec:
+        containers:
+        - image: blackducksoftware/hub-scan:4.4.2
+          livenessProbe:
+            exec:
+              command:
+                - /usr/local/bin/docker-healthcheck.sh
+                - http://127.0.0.1:8080/api/health-checks/liveness
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 30
+          imagePullPolicy: Always
+          name: hub-scan
+          resources:
+            limits:
+              memory: "2G"
+            requests:
+              memory: "2G"
+          ports:
+          - containerPort: 8080
+          env:
+          - name: HUB_VERSION
+            value: 4.4.2
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: scan # this is the default service name the hub looks for.
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      targetPort: 8080
+    selector:
+      app: hub-scan
+  status:
+    loadBalancer: {}

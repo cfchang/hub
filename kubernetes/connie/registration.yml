@@ -1,0 +1,53 @@
+kind: List
+apiVersion: v1beta1
+items:
+- apiVersion: apps/v1beta1
+  kind: Deployment
+  metadata:
+    name: registration
+  spec:
+    replicas: 1
+    template:
+      metadata:
+        name: registration
+        labels:
+          app: registration
+          tier: registration
+      spec:
+        volumes:
+        - emptyDir: {}
+          name: dir-1
+        containers:
+        - envFrom:
+          - configMapRef:
+              name: hub-config
+          image: blackducksoftware/hub-registration:4.4.2
+          livenessProbe:
+            exec:
+              command:
+                - /usr/local/bin/docker-healthcheck.sh
+                - http://localhost:8080/registration/health-checks/liveness
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 30
+          imagePullPolicy: Always
+          name: registration
+          ports:
+          - containerPort: 8080
+          volumeMounts:
+          - mountPath: "/opt/blackduck/hub/registration/config"
+            name: dir-1
+          env:
+          - name: HUB_VERSION
+            value: 4.4.2
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: registration
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      targetPort: 8080
+    selector:
+      app: registration

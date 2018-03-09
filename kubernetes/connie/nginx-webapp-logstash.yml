@@ -1,0 +1,157 @@
+kind: List
+apiVersion: v1beta1
+items:
+- apiVersion: apps/v1beta1
+  kind: Deployment
+  metadata:
+    name: nginx-webapp-logstash
+  spec:
+    replicas: 1
+    template:
+      metadata:
+        name: nginx-webapp-logstash
+        labels:
+          app: nginx-webapp-logstash
+          tier: nginx-webapp-logstash
+      spec:
+        volumes:
+        - emptyDir: {}
+          name: dir-webapp
+        - emptyDir: {}
+          name: dir-logstash
+        - name: dir-webserver
+          emptyDir: {}
+# uncomment the below lines if you want to customize hub logging with a config map
+#        - name: dir-logstash-conf
+#          configMap:
+#            name: hub-logstash-conf
+#            items:
+#            - key: logstash.conf
+#              path: logstash.conf
+        containers:
+        - name: webapp
+          resources:
+            requests:
+              cpu: 1
+              memory: 2G
+            limits:
+              cpu: 1
+              memory: 2G
+          image: blackducksoftware/hub-webapp:4.4.2
+          livenessProbe:
+            exec:
+              command:
+                - /usr/local/bin/docker-healthcheck.sh
+                - http://127.0.0.1:8080/api/health-checks/liveness
+            initialDelaySeconds: 60
+            timeoutSeconds: 60
+            periodSeconds: 30
+          imagePullPolicy: Always
+          envFrom:
+          - configMapRef:
+              name: hub-config
+          volumeMounts:
+          - mountPath: "/opt/blackduck/hub/logs"
+            name: dir-webapp
+          - mountPath: "/var/lib/logstash/data"
+            name: dir-logstash
+          ports:
+          - containerPort: 8080
+          env:
+          - name: HUB_VERSION
+            value: 4.4.2
+        - image: blackducksoftware/hub-logstash:4.4.2
+          livenessProbe:
+            exec:
+              command:
+                - /usr/local/bin/docker-healthcheck.sh
+                - http://localhost:9600/
+            initialDelaySeconds: 60
+            timeoutSeconds: 10
+            periodSeconds: 30
+          imagePullPolicy: Always
+          name: logstash
+          resources:
+            requests:
+              memory: 640M
+            limits:
+              memory: 640M
+          volumeMounts:
+          - mountPath: "/opt/blackduck/hub/logs"
+            name: dir-webapp
+          - mountPath: "/var/lib/logstash/data"
+            name: dir-logstash
+          ports:
+          - containerPort: 5044 # filebeat
+          env:
+          - name: HUB_VERSION
+            value: 4.4.2
+# uncomment the below lines if you want to customize the file path for logstash via a config map mount.
+#          cmd: ["/docker-entrypoint.sh"]
+#          args: ["-f", "/var/hub-config/logstash.conf"]
+        - name: nginx
+          resources:
+            requests:
+              memory: 512M
+            limits:
+              memory: 512M
+          image: blackducksoftware/hub-nginx:4.4.2
+          livenessProbe:
+            exec:
+              command:
+                - /usr/local/bin/docker-healthcheck.sh
+                - https://localhost:8443/health-checks/liveness
+                - /opt/blackduck/hub/webserver/security/root.crt
+            initialDelaySeconds: 60
+            periodSeconds: 30
+            timeoutSeconds: 10
+          imagePullPolicy: Always
+          ports:
+          - containerPort: 8443
+          volumeMounts:
+          - mountPath: "/opt/blackduck/hub/webserver/security"
+            name: dir-webserver
+          env:
+          - name: HUB_VERSION
+            value: 4.4.2
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: nginx-webapp-logstash
+  spec:
+    ports:
+    - name: 443-tcp
+      port: 443
+      targetPort: 8443
+    selector:
+      app: nginx-webapp-logstash
+  status:
+    loadBalancer: {}
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: webapp
+  spec:
+    ports:
+    - name: 8080-tcp
+      port: 8080
+      targetPort: 8080
+    selector:
+      app: nginx-webapp-logstash
+  status:
+    loadBalancer: {}
+# Important to expose logstash for writing to logs.  maybe for reading as well .
+- apiVersion: v1
+  kind: Service
+  metadata:
+    name: logstash
+  spec:
+    ports:
+    - name: 4560-tcp
+      port: 4560
+      targetPort: 4560
+    - name: 5044-tcp-filebeat
+      port: 5044
+      targetPort: 5044
+    selector:
+      app: nginx-webapp-logstash
