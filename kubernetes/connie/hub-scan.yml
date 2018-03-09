@@ -26,10 +26,8 @@ items:
           imagePullPolicy: Always
           name: hub-scan
           resources:
-            limits:
-              memory: "2G"
             requests:
-              memory: "2G"
+              memory: "4G"
           ports:
           - containerPort: 8080
           env:

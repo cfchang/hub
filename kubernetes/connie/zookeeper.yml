@@ -35,9 +35,7 @@ items:
           name: zookeeper
           resources:
             requests:
-              memory: 384M
-            limits:
-              memory: 384M
+              memory: 768M
           volumeMounts:
             - mountPath: "/opt/blackduck/hub/logs"
               name: dir-1

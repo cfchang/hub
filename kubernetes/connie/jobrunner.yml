@@ -27,10 +27,7 @@ items:
           resources:
             requests:
               cpu: 1
-              memory: 4608M
-            limits:
-              cpu: 1
-              memory: 4608M
+              memory: 9216M
           name: jobrunner
           envFrom:
           - configMapRef:

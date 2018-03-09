@@ -31,11 +31,8 @@ items:
           imagePullPolicy: Always
           resources:
             requests:
-              memory: 3072M
-              cpu: 1
-            limits:
-              memory: 3072M
-              cpu: 1
+              memory: 6144M
+              cpu: 2
           envFrom:
           - configMapRef:
               name: hub-config

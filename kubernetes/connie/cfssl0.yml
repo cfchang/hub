@@ -30,9 +30,7 @@ items:
           imagePullPolicy: Always
           resources:
             requests:
-              memory: 640M
-            limits:
-              memory: 640M
+              memory: 1280M
           name: hub-cfssl
           envFrom:
           - configMapRef:
